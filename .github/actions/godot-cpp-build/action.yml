@@ -29,6 +29,38 @@ runs:
         ref: ${{ inputs.godot-cpp-branch }}
         path: godot-cpp
 
+    - name: Workaround "Argument list too long" when archiving libgodot-cpp
+      # godot-cpp's SConstruct builds libgodot-cpp.a with a plain `ar rc <target>
+      # <all object files>` command. With the number of generated binding sources
+      # in godot-cpp, the resulting command line can exceed the OS argument size
+      # limit, which fails the build with "sh: Argument list too long" (see e.g.
+      # godotengine/godot-cpp#1729). GNU `ar` supports reading its arguments from
+      # a response file (an `@file` argument), and SCons already knows how to use
+      # one automatically via `TempFileMunge` (the same mechanism MSVC's `lib.exe`
+      # tool uses). We patch that in here, right after the `env` used to build the
+      # library is fully configured, instead of forking godot-cpp for this.
+      shell: sh
+      run: |
+        python3 - <<'EOF'
+        import pathlib
+
+        path = pathlib.Path("godot-cpp/SConstruct")
+        text = path.read_text()
+        anchor = "library = env.GodotCPP()"
+        patch = (
+            "if env[\"platform\"] == \"linux\":\n"
+            "    import SCons.Platform\n"
+            "    env[\"TEMPFILE\"] = SCons.Platform.TempFileMunge\n"
+            "    env[\"MAXLINELENGTH\"] = 2000\n"
+            "    env[\"ARCOM\"] = '${TEMPFILE(\"$AR $ARFLAGS $TARGET $SOURCES\",\"$ARCOMSTR\")}'\n\n"
+        )
+        if anchor not in text:
+            raise SystemExit("godot-cpp SConstruct layout changed; update the ar argument-list-too-long workaround")
+        if patch not in text:
+            text = text.replace(anchor, patch + anchor, 1)
+            path.write_text(text)
+        EOF
+
     - name: Extract API
       shell: sh
       run: ${{ inputs.bin }} --headless --dump-gdextension-interface --dump-extension-api
