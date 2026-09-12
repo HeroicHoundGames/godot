@@ -1,3 +1,3 @@
 [submodule "modules/limboai"]
 	path = modules/limboai
-	url = git@github.com:limbonaut/limboai.git
+	url = git@github.com:HeroicHoundGames/limboai.git
