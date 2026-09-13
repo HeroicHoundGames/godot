@@ -146,6 +146,11 @@ const Vector<String> prop_allowed_inherited_member_hiding = {
 	// Included for the sake of CI, with the understanding that they *deserve* warnings.
 	"GltfAccessor.GetType",
 	"GltfAccessor.MethodName.GetType",
+	// LimboAI (modules/limboai): BBParam.get_type() and its "type" property hide `GetType()`
+	// from `object`; BTTask's "status" property hides the `Status` enum inherited from `BT`.
+	"BBParam.GetType",
+	"BBParam.MethodName.GetType",
+	"BTTask.Status",
 };
 
 // We force the following enums to always add the 'Enum' suffix which is usually
