@@ -255,7 +255,11 @@ jobs:
           echo "Running --doctool to see if this changes the public API without updating the documentation."
           echo -e "If a diff is shown, it means that your code/doc changes are incomplete and you should update the class reference with --doctool.\n\n"
           ${{ matrix.bin }} --doctool --headless 2>&1 > /dev/null || true
-          git diff --color --exit-code && ! git ls-files --others --exclude-standard | sed -e 's/^/New doc file missing in PR: /' | grep 'xml$'
+          # Ignore submodules here: doctool may regenerate submodule-owned docs (e.g. limboai)
+          # with trivial formatting differences, marking the submodule dirty without any
+          # actual (uncommitted) content change at the top level. Submodule doc content is
+          # the responsibility of the submodule's own CI.
+          git diff --color --exit-code --ignore-submodules && ! git ls-files --others --exclude-standard | sed -e 's/^/New doc file missing in PR: /' | grep 'xml$'
 
       # Check API backwards compatibility
       - name: Check for GDExtension compatibility – JSON check
